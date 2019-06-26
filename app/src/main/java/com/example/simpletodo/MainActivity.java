@@ -1,5 +1,6 @@
 package com.example.simpletodo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -17,6 +18,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+
+    //  numeric code to identify the edit activity
+    public static final int EDIT_REQUEST_CODE = 20;
+    //  passes data between activities
+    public static final String ITEM_TEXT = "itemText";
+    public static final String ITEM_POSITION = "itemPosition";
+
 
     //ArrayAdapter helps wire to ListView
     ArrayList<String> tasks;
@@ -52,10 +60,24 @@ public class MainActivity extends AppCompatActivity {
                 itemsAdapter.notifyDataSetChanged();
                 //store updated list
                 writeItems();
-                //Logging
+                //  Logging
                 // Log.i("MainActivity", "Removed item " + position);
                 //  return true to tell the framework that the long click was consumed
                 return true;
+            }
+        });
+
+        lvItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id){
+                //  first parameter is the context, second is the class of the activity to launch
+                Intent i = new Intent(MainActivity.this, EditItemActivity.class);
+                // put "extras" into the bundle for access in the edit activity
+                i.putExtra(ITEM_TEXT, tasks.get(position));
+                i.putExtra(ITEM_POSITION, position);
+                //  bring up the edit activity w/ expectation of a results
+                startActivityForResult(i, EDIT_REQUEST_CODE);
+
             }
         });
     }
@@ -103,6 +125,26 @@ public class MainActivity extends AppCompatActivity {
         }   catch (IOException e) {
             //  print the error to the console
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)   {
+        super.onActivityResult(requestCode, resultCode, data);
+        //EDIT_REQUEST_CODE defined with constants
+        if (resultCode == RESULT_OK && requestCode == EDIT_REQUEST_CODE) {
+            //  extract updated item value from result extras
+            String updatedItem = data.getExtras().getString(ITEM_TEXT);
+            //  get pos. of item which was edited
+            int position = data.getExtras().getInt(ITEM_POSITION, 0);
+            //  update the model w/ the new item text at the edited position
+            tasks.set(position, updatedItem);
+            //  notify the adapter the model changed
+            itemsAdapter.notifyDataSetChanged();
+            //  Store the updated items back to disk
+            writeItems();
+            //  notify the user the operation completed successfully
+            Toast.makeText(this, "Item updated", Toast.LENGTH_SHORT).show();
         }
     }
 }
